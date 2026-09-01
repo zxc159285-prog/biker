@@ -1,20 +1,31 @@
-# Biker Project Roadmap
+# Biker Navigation - Roadmap & Tasks
 
-## 1. 프로젝트 마일스톤 (Milestones)
-- [x] 카카오 지도 렌더링 및 GPS 실시간 추적 연동
-- [x] BRouter 스쿠터 전용 숏컷 탐색 엔진 도입 (자동차 전용도로 우회)
-- [x] 즐겨찾기(Favorites) 기능 및 UI 포커스 인식 개선
-- [x] 화면 꺼짐 방지(WakeLock) 모드 도입
-- [x] 실시간 경로 이탈 자동 재탐색(Auto-Rerouting) 기능 탑재
-- [x] BRouter 불법 U턴 한계 극복을 위한 자체 수학적 스캔 레이더 탑재
-- [ ] 정밀한 음성 턴바이턴(TBT) 안내 구현 (향후 T맵 API 키 확보 시 전환 가능성)
+## 마일스톤 및 완료 현황
 
-## 2. 공용 아키텍처 및 재사용 자산 명세
+### [x] 1. 코어 내비게이션 및 UI (완료)
+- [x] 카카오 지도 초기화 및 GPS 트래킹
+- [x] BRouter 기반 이륜차 전용 경로 탐색
+- [x] 내 위치 화살표 DOM 회전 최적화 구현
+- [x] 불법 U턴 탐지 레이더 기하학 연산
 
-### [이미 구현 완료된 공용 자산 (Implemented Assets)]
-- **BRouter API 통신 유틸리티**: `fetchBRouterMopedRoute` (GeoJSON 파싱 및 시간/거리 계산)
-- **위치 기반 수학 스캐너**: `detectAndMarkUTurns` (내적과 아크코사인을 이용한 150도 이상 U턴 곡선 벡터 감지 로직)
-- **경로 이탈 감지 유틸리티**: `getDistanceToPath` (현재 GPS 위치와 다각형 선분 사이의 최단 거리를 미터 단위로 계산하는 투영 알고리즘)
+### [x] 2. 안전지도 (단속카메라/스쿨존) 데이터 구축 (완료)
+- [x] 공공데이터포털 좌표 다운로드 완료
+- [x] 60MB 원본 데이터를 3.7MB 로컬 JSON 파일로 정제 및 압축 (Node.js 스크립트 가동)
+- [x] 카메라, 후면단속, 스쿨존, 주정차 데이터 추출 완벽 성공
 
-### [구현 예정인 공용 자산 (Planned Assets)]
-- T맵 연동 기반의 공식 이륜차 엔진 및 TTS 텍스트 분리기
+### [x] 3. 안전지도 UI 및 렌더링 최적화 (완료)
+- [x] App.jsx 우측 상단 토글(Toggle) 버튼 패널 부착
+- [x] `getBounds` 활용: 화면 내 데이터만 렌더링하는 최적화 가동
+- [x] 일반 카메라 / 후면 카메라 / 스쿨존 / 주정차 금지 마커 CSS 커스텀 디자인 완료
+
+### [ ] 4. 추후 고도화 (예정)
+- [ ] 군중 소싱(Crowdsourcing) 기반 실시간 단속 제보 기능 (BaaS 연동 예정)
+- [ ] 실시간 교통량에 따른 폴리라인 색상 변경 적용 (유료 API 도입 시)
+
+---
+## [완료된 공용 자산 (Implemented Assets)]
+- `process_data.cjs`: 공공데이터포털(data.go.kr)의 거대 JSON/CSV를 WGS84 좌표 기반 경량 JSON으로 압축하는 전처리 파이프라인 유틸리티.
+- `safemap_data.json`: 57,000개의 위치가 압축된 정적 데이터. (DB 서버 비용 $0 유지)
+
+## [구현 예정인 공용 자산 (Planned Assets)]
+- 사용자 위치 기반 제보 데이터 실시간 싱크 모듈 (Supabase/Firebase)

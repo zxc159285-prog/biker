@@ -1,6 +1,42 @@
 import { useEffect, useRef, useState } from 'react';
 import './App.css';
 
+// 경로와 특정 좌표 간 최단거리 (기존)
+function getDistanceToPath(lat, lng, path) {
+  if (!path || path.length < 2) return 0;
+  let minDist = Infinity;
+  const cosLat = Math.cos((lat * Math.PI) / 180);
+  for (let i = 0; i < path.length - 1; i++) {
+    const p1 = path[i], p2 = path[i + 1];
+    const x0 = lng, y0 = lat;
+    const x1 = p1.getLng(), y1 = p1.getLat();
+    const x2 = p2.getLng(), y2 = p2.getLat();
+    const dx = (x2 - x1) * cosLat, dy = (y2 - y1);
+    const l2 = dx * dx + dy * dy;
+    let t = 0;
+    if (l2 !== 0) {
+      const vx = (x0 - x1) * cosLat, vy = (y0 - y1);
+      t = Math.max(0, Math.min(1, (vx * dx + vy * dy) / l2));
+    }
+    const projX = x1 + t * (x2 - x1), projY = y1 + t * (y2 - y1);
+    const dist = Math.sqrt(Math.pow((x0 - projX) * cosLat * 111000, 2) + Math.pow((y0 - projY) * 111000, 2));
+    if (dist < minDist) minDist = dist;
+  }
+  return minDist;
+}
+
+// 두 좌표(위경도) 간의 직선 거리 반환 (Haversine 공식 적용, 단위: 미터)
+function getPointDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371e3;
+  const p1 = lat1 * Math.PI/180;
+  const p2 = lat2 * Math.PI/180;
+  const dp = (lat2-lat1) * Math.PI/180;
+  const dl = (lng2-lng1) * Math.PI/180;
+  const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
 function App() {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -21,6 +57,10 @@ function App() {
   const isReroutingRef = useRef(false);
   const selectedDestRef = useRef(null);
 
+  // 카메라 음성 안내를 위한 메모리 Ref
+  const visibleSafemapDataRef = useRef([]); // 화면에 그려진 카메라 좌표 저장
+  const announcedCamerasRef = useRef(new Set()); // 이미 안내한 카메라 ID 기록 (중복 안내 방지)
+
   const [selectedStart, setSelectedStart] = useState({ placeName: '내 위치', lat: null, lng: null });
   const [selectedDest, setSelectedDest] = useState(null);
   const [startQuery, setStartQuery] = useState('내 위치');
@@ -38,16 +78,87 @@ function App() {
   const [instructions, setInstructions] = useState([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
-
   const [activeInput, setActiveInput] = useState('dest');
 
-  useEffect(() => {
-    selectedDestRef.current = selectedDest;
-  }, [selectedDest]);
+  const [safemapData, setSafemapData] = useState([]);
+  const [routeTrigger, setRouteTrigger] = useState(0); 
+  const renderedMarkersRef = useRef([]);
+
+  useEffect(() => { selectedDestRef.current = selectedDest; }, [selectedDest]);
+  useEffect(() => { isNavigatingRef.current = isNavigating; }, [isNavigating]);
 
   useEffect(() => {
-    isNavigatingRef.current = isNavigating;
-  }, [isNavigating]);
+    fetch('/safemap_data.json')
+      .then(res => res.json())
+      .then(data => setSafemapData(data))
+      .catch(err => console.error("데이터 로드 실패", err));
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current || !window.kakao || safemapData.length === 0) return;
+
+    const updateMarkers = () => {
+      renderedMarkersRef.current.forEach(m => m.setMap(null));
+      renderedMarkersRef.current = [];
+
+      const currentPath = routePathRef.current;
+      const hasRoute = currentPath && currentPath.length > 0;
+      const bounds = mapRef.current.getBounds();
+      const sw = bounds.getSouthWest();
+      const ne = bounds.getNorthEast();
+
+      const visibleData = safemapData.filter(d => {
+        if (d.lat < sw.getLat() || d.lat > ne.getLat() || d.lng < sw.getLng() || d.lng > ne.getLng()) return false;
+        if (d.type === 'parking') return true;
+        if (hasRoute) {
+          if (d.type === 'camera' || d.type === 'rear_camera') {
+            return getDistanceToPath(d.lat, d.lng, currentPath) <= 30;
+          } else if (d.type === 'schoolzone') {
+            return getDistanceToPath(d.lat, d.lng, currentPath) <= 50;
+          }
+        }
+        return false;
+      });
+
+      const newMarkersData = visibleData.slice(0, 300);
+      visibleSafemapDataRef.current = newMarkersData; // 음성 안내 대상에 저장
+
+      const newMarkers = newMarkersData.map(d => {
+        let content = '';
+        if (d.type === 'camera') {
+          content = `<div style="background:#fff; border:3px solid #ff3344; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; color:#ff3344; font-size:14px; box-shadow:0 2px 4px rgba(0,0,0,0.3); opacity: 0.9;">
+            ${d.speed > 0 ? d.speed : '📷'}
+          </div>`;
+        } else if (d.type === 'rear_camera') {
+          content = `<div style="background:#ff3344; border:3px solid #fff; width:44px; height:44px; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:900; color:#fff; box-shadow:0 4px 6px rgba(0,0,0,0.5); z-index: 99;">
+            <span style="font-size:10px; line-height:1;">후면</span>
+            <span style="font-size:16px; line-height:1.1;">${d.speed > 0 ? d.speed : '🚨'}</span>
+          </div>`;
+        } else if (d.type === 'schoolzone') {
+          content = `<div style="background:#fbbf24; border:2px solid #fff; padding:4px 8px; border-radius:12px; font-weight:800; color:#b45309; font-size:12px; box-shadow:0 2px 4px rgba(0,0,0,0.3); opacity: 0.85;">
+            🚸 30
+          </div>`;
+        } else if (d.type === 'parking') {
+          content = `<div style="background:#ef4444; border:2px solid #fff; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; color:#fff; font-size:12px; box-shadow:0 2px 4px rgba(0,0,0,0.3); opacity: 0.7;">
+            P
+          </div>`;
+        }
+
+        const overlay = new window.kakao.maps.CustomOverlay({
+          position: new window.kakao.maps.LatLng(d.lat, d.lng),
+          content: content,
+          zIndex: d.type === 'rear_camera' ? 100 : 50
+        });
+        overlay.setMap(mapRef.current);
+        return overlay;
+      });
+      renderedMarkersRef.current = newMarkers;
+    };
+
+    updateMarkers();
+    window.kakao.maps.event.addListener(mapRef.current, 'idle', updateMarkers);
+    return () => window.kakao.maps.event.removeListener(mapRef.current, 'idle', updateMarkers);
+  }, [safemapData, routeTrigger]);
 
   const requestScreenWakeLock = async () => {
     if ('wakeLock' in navigator) {
@@ -71,51 +182,9 @@ function App() {
     window.speechSynthesis.speak(utterance);
   };
 
-  const getDistanceToPath = (lat, lng, path) => {
-    if (!path || path.length < 2) return 0;
-    
-    let minDist = Infinity;
-    const cosLat = Math.cos((lat * Math.PI) / 180);
-
-    for (let i = 0; i < path.length - 1; i++) {
-      const p1 = path[i];
-      const p2 = path[i + 1];
-
-      const x0 = lng, y0 = lat;
-      const x1 = p1.getLng(), y1 = p1.getLat();
-      const x2 = p2.getLng(), y2 = p2.getLat();
-
-      const dx = (x2 - x1) * cosLat;
-      const dy = (y2 - y1);
-      const l2 = dx * dx + dy * dy;
-
-      let t = 0;
-      if (l2 !== 0) {
-        const vx = (x0 - x1) * cosLat;
-        const vy = (y0 - y1);
-        t = (vx * dx + vy * dy) / l2;
-        t = Math.max(0, Math.min(1, t));
-      }
-
-      const projX = x1 + t * (x2 - x1);
-      const projY = y1 + t * (y2 - y1);
-
-      const distX = (x0 - projX) * cosLat * 111000;
-      const distY = (y0 - projY) * 111000;
-      const dist = Math.sqrt(distX * distX + distY * distY);
-
-      if (dist < minDist) minDist = dist;
-    }
-    return minDist;
-  };
-
-  // 내 위치 마커 업데이트 (DOM 엘리먼트 직접 조작으로 부드러운 회전 애니메이션 구현)
   const updateMyLocationMarker = (lat, lng, heading) => {
     const currentLatLng = new window.kakao.maps.LatLng(lat, lng);
-    
-    if (heading !== null && !isNaN(heading)) {
-      lastHeadingRef.current = heading;
-    }
+    if (heading !== null && !isNaN(heading)) lastHeadingRef.current = heading;
     const rotation = lastHeadingRef.current;
 
     if (!myLocationMarkerRef.current) {
@@ -159,7 +228,6 @@ function App() {
 
   const handleAutoReroute = async (currentLat, currentLng) => {
     if (!selectedDestRef.current || isReroutingRef.current) return;
-    
     isReroutingRef.current = true;
     speakVoiceGuide("경로를 이탈하여 재탐색합니다.");
     
@@ -182,6 +250,7 @@ function App() {
 
       uTurnMarkersRef.current = detectAndMarkUTurns(routeResult.path, mapRef.current);
       routePathRef.current = routeResult.path; 
+      setRouteTrigger(p => p + 1);
 
       const distanceKm = (routeResult.distance / 1000).toFixed(1);
       const estimatedMinutes = Math.max(1, Math.round(routeResult.duration / 60));
@@ -192,7 +261,6 @@ function App() {
         time: estimatedMinutes,
       }));
     }
-    
     setTimeout(() => { isReroutingRef.current = false; }, 3000); 
   };
 
@@ -214,8 +282,34 @@ function App() {
 
         if (isNavigatingRef.current && routePathRef.current.length > 0 && !isReroutingRef.current) {
           const distanceOffRoute = getDistanceToPath(lat, lng, routePathRef.current);
+          
           if (distanceOffRoute > 40) {
             handleAutoReroute(lat, lng);
+          } else {
+            // 정상 주행 시 카메라 접근 체크 (반경 300m 이내)
+            visibleSafemapDataRef.current.forEach(camera => {
+              const dist = getPointDistance(lat, lng, camera.lat, camera.lng);
+              if (dist <= 300) {
+                const camId = `${camera.lat}_${camera.lng}`;
+                // 중복 안내 방지
+                if (!announcedCamerasRef.current.has(camId)) {
+                  announcedCamerasRef.current.add(camId);
+                  
+                  // 거리에 들어오면 즉시 음성 안내
+                  if (camera.type === 'schoolzone') {
+                    speakVoiceGuide("전방 삼백미터 앞, 어린이 보호구역입니다. 서행하세요.");
+                  } else if (camera.type === 'rear_camera') {
+                    if (camera.speed > 0) speakVoiceGuide(`전방 삼백미터 앞, 시속 ${camera.speed}킬로미터, 후면 단속 구역입니다.`);
+                    else speakVoiceGuide(`전방 삼백미터 앞, 후면 단속 카메라가 있습니다.`);
+                  } else if (camera.type === 'camera') {
+                    if (camera.speed > 0) speakVoiceGuide(`전방 삼백미터 앞, 시속 ${camera.speed}킬로미터, 단속 구간입니다.`);
+                    else speakVoiceGuide(`전방 삼백미터 앞, 단속 카메라가 있습니다.`);
+                  } else if (camera.type === 'parking') {
+                    speakVoiceGuide("전방 삼백미터 앞, 불법 주정차 단속 구역입니다.");
+                  }
+                }
+              }
+            });
           }
         }
       },
@@ -234,9 +328,7 @@ function App() {
         currentPosRef.current = { lat, lng };
         if (mapRef.current) {
           updateMyLocationMarker(lat, lng, heading);
-          if (forcePanTo) {
-            mapRef.current.panTo(new window.kakao.maps.LatLng(lat, lng));
-          }
+          if (forcePanTo) mapRef.current.panTo(new window.kakao.maps.LatLng(lat, lng));
         }
       },
       (error) => console.error('GPS 실패:', error),
@@ -288,15 +380,12 @@ function App() {
           const feature = data.features[0];
           const coords = feature.geometry.coordinates;
           const linePath = coords.map((c) => new window.kakao.maps.LatLng(c[1], c[0]));
-          
           const distance = parseInt(feature.properties['track-length'] || 0, 10);
           const duration = parseInt(feature.properties['total-time'] || 0, 10);
-          
           const steps = [
             { arrow: '🚀', text: '오토바이 숏컷 진입 (경로 이탈 시 자동 재탐색)', distance: distance, alertBadgeText: '불법 U턴 탐지 레이더 가동중' },
             { arrow: '🏁', text: '지도의 붉은 선을 따라가되, 표지판을 반드시 확인하세요.', distance: 0 }
           ];
-
           return { path: linePath, distance, duration, steps };
         }
       }
@@ -310,16 +399,12 @@ function App() {
     const markers = [];
     const step = 3; 
     for (let i = step; i < path.length - step; i++) {
-      const prev = path[i - step];
-      const curr = path[i];
-      const next = path[i + step];
-
+      const prev = path[i - step], curr = path[i], next = path[i + step];
       const vIn = { x: curr.getLng() - prev.getLng(), y: curr.getLat() - prev.getLat() };
       const vOut = { x: next.getLng() - curr.getLng(), y: next.getLat() - curr.getLat() };
       const dot = vIn.x * vOut.x + vIn.y * vOut.y;
       const magIn = Math.sqrt(vIn.x * vIn.x + vIn.y * vIn.y);
       const magOut = Math.sqrt(vOut.x * vOut.x + vOut.y * vOut.y);
-
       if (magIn === 0 || magOut === 0) continue;
       const cosTheta = dot / (magIn * magOut);
       const angle = Math.acos(Math.max(-1, Math.min(1, cosTheta))) * (180 / Math.PI);
@@ -341,7 +426,6 @@ function App() {
 
   const runRouteSearch = async (startObj, destObj) => {
     if (!destObj) return;
-
     let startLat = startObj && startObj.lat;
     let startLng = startObj && startObj.lng;
 
@@ -357,7 +441,6 @@ function App() {
     }
 
     const routeResult = await fetchBRouterMopedRoute(startLat, startLng, destObj.lat, destObj.lng);
-
     if (!routeResult || !routeResult.path || routeResult.path.length === 0) {
       alert('경로 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.');
       return;
@@ -386,6 +469,7 @@ function App() {
 
     uTurnMarkersRef.current = detectAndMarkUTurns(routeResult.path, mapRef.current);
     routePathRef.current = routeResult.path; 
+    setRouteTrigger(p => p + 1);
 
     const bounds = new window.kakao.maps.LatLngBounds();
     routeResult.path.forEach((p) => bounds.extend(p));
@@ -400,6 +484,9 @@ function App() {
     setInstructions(routeResult.steps || []);
     setCurrentStepIndex(0);
     setIsNavigating(false);
+    
+    // 길찾기 수행 시 안내 음성 메모리 초기화
+    announcedCamerasRef.current.clear();
 
     setRouteInfo({
       distance: distanceKm,
@@ -425,12 +512,16 @@ function App() {
     uTurnMarkersRef.current.forEach(marker => marker.setMap(null));
     uTurnMarkersRef.current = [];
     routePathRef.current = [];
+    setRouteTrigger(p => p + 1);
 
     setRouteInfo(null);
     setIsNavigating(false);
     setDestinationQuery('');
     setDestResults([]);
     setSelectedDest(null);
+    
+    // 경로 초기화 시 음성 메모리 초기화
+    announcedCamerasRef.current.clear();
   };
 
   const handleAddFavorite = (e, place) => {
@@ -453,18 +544,15 @@ function App() {
   };
 
   const handleSelectFavorite = (place) => {
-    if (activeInput === 'start') {
-      handleSelectStartPlace(place);
-    } else {
-      handleSelectDestPlace(place);
-    }
+    if (activeInput === 'start') handleSelectStartPlace(place);
+    else handleSelectDestPlace(place);
   };
   
   const handleStartNavigation = () => {
     setIsNavigating(true);
     startRealtimeTracking();
     requestScreenWakeLock();
-    if (instructions.length > 0) speakVoiceGuide(`안내를 시작합니다. 경로를 이탈하면 자동으로 재탐색합니다.`);
+    if (instructions.length > 0) speakVoiceGuide(`안내를 시작합니다. 전방에 단속 카메라가 있을 경우 음성으로 경고해 드립니다.`);
   };
 
   const handleStopNavigation = () => {
@@ -472,6 +560,7 @@ function App() {
     stopRealtimeTracking();
     releaseScreenWakeLock();
     if (window.speechSynthesis) window.speechSynthesis.cancel();
+    announcedCamerasRef.current.clear();
   };
 
   const handleSelectStartPlace = (place) => {
@@ -526,7 +615,6 @@ function App() {
       if (mapRef.current) return;
       const options = { center: new window.kakao.maps.LatLng(37.5665, 126.9780), level: 3 };
       const map = new window.kakao.maps.Map(mapContainerRef.current, options);
-      
       mapRef.current = map;
       fetchCurrentPositionSilent(false);
     };
@@ -658,7 +746,7 @@ function App() {
               <button type="button" className="start-nav-btn" onClick={handleStartNavigation}>🚀 안내 시작</button>
             </>
           ) : (
-            <div className="navigating-bottom-bar">
+             <div className="navigating-bottom-bar">
               <div className="mini-info">
                 <span className="mini-time">약 {routeInfo.time}분</span>
                 <span className="mini-dist">{routeInfo.distance} km</span>
