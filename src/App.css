@@ -1,0 +1,443 @@
+/* 레이아웃 전체 초기화 */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* 지도 전체 래퍼 */
+.map-wrapper {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* 지도 컨테이너 */
+.map-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* 상단 턴바이턴 시각 안내 배너 */
+.turn-banner {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 20;
+  width: calc(100% - 32px);
+  max-width: 400px;
+  background-color: #111827;
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 14px 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.3s ease;
+}
+
+/* 🚨 단속 카메라 강조 배너 */
+.turn-banner.camera-alert-mode {
+  background-color: #dc2626;
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.45);
+}
+
+/* 🚸 어린이보호구역 노란색 강조 배너 */
+.turn-banner.schoolzone-alert-mode {
+  background-color: #eab308;
+  color: #111827;
+  box-shadow: 0 8px 24px rgba(234, 179, 8, 0.45);
+}
+
+.turn-arrow {
+  font-size: 28px;
+}
+
+.turn-text-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.camera-badge {
+  background-color: #fef08a;
+  color: #854d0e;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 3px;
+}
+
+.camera-badge.school-badge {
+  background-color: #111827;
+  color: #fef08a;
+}
+
+.turn-text {
+  font-size: 16px;
+  font-weight: 800;
+  color: inherit;
+  text-align: left;
+}
+
+/* 상단 내비게이션 검색 카드 */
+.nav-search-card {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  width: calc(100% - 32px);
+  max-width: 360px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-group-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f5f5f7;
+  border-radius: 10px;
+  padding: 8px 12px;
+  flex: 1;
+}
+
+.input-label {
+  font-size: 12px;
+  font-weight: bold;
+  color: #4b5563;
+  min-width: 28px;
+}
+
+.input-label.dest {
+  color: #FF3344;
+}
+
+.nav-input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14px;
+  outline: none;
+  color: #111827;
+}
+
+.my-pos-tag-btn {
+  background-color: #e5e7eb;
+  color: #374151;
+  border: none;
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.swap-btn {
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* 드롭다운 검색 결과 목록 */
+.search-results-list {
+  list-style: none;
+  margin: 4px 0 0 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background-color: #ffffff;
+}
+
+.result-item {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  text-align: left;
+}
+
+.result-item-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fav-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.place-name {
+  font-size: 14px;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.place-road {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  margin-top: 3px;
+}
+
+.place-address {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+/* ⭐ 즐겨찾기 퀵 칩 바 스타일 */
+.favorites-chip-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.fav-title {
+  font-size: 11px;
+  font-weight: bold;
+  color: #f59e0b;
+  white-space: nowrap;
+}
+
+.fav-chip-list {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.fav-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #fffbe6;
+  border: 1px solid #fef3c7;
+  border-radius: 12px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #b45309;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fav-chip:active {
+  background-color: #fef3c7;
+}
+
+.fav-chip-del {
+  font-size: 10px;
+  color: #9ca3af;
+  margin-left: 2px;
+}
+
+.fav-chip-del:hover {
+  color: #ef4444;
+}
+
+/* 하단 경로 정보 표시 카드 */
+.route-info-card {
+  position: absolute;
+  bottom: calc(70px + env(safe-area-inset-bottom, 16px));
+  left: 16px;
+  z-index: 10;
+  width: calc(100% - 32px);
+  max-width: 360px;
+  max-height: 42vh;
+  overflow-y: auto;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.route-info-card.mini-mode {
+  padding: 12px 14px;
+}
+
+.info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.dest-title {
+  font-size: 15px;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.info-body {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.time-highlight {
+  font-size: 20px;
+  font-weight: 800;
+  color: #FF3344;
+}
+
+.dist-text {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.badge-alley {
+  margin-left: auto;
+  background-color: #ffe4e6;
+  color: #FF3344;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 3px 6px;
+  border-radius: 6px;
+}
+
+.address-sub {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
+  text-align: left;
+}
+
+.disclaimer-box {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background-color: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 6px;
+  font-size: 10px;
+  color: #d48806;
+  text-align: left;
+  line-height: 1.3;
+}
+
+.start-nav-btn {
+  width: 100%;
+  background-color: #FF3344;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 10px;
+  box-shadow: 0 4px 12px rgba(255, 51, 68, 0.35);
+}
+
+.start-nav-btn:active {
+  transform: scale(0.98);
+}
+
+.navigating-bottom-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mini-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.mini-time {
+  font-size: 17px;
+  font-weight: 800;
+  color: #FF3344;
+}
+
+.mini-dist {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.mini-eta {
+  font-size: 11px;
+  font-weight: bold;
+  color: #111827;
+  margin-top: 1px;
+}
+
+.action-row {
+  display: flex;
+  gap: 6px;
+}
+
+.voice-toggle-btn {
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.stop-nav-btn {
+  background-color: #374151;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.current-location-btn {
+  position: absolute;
+  bottom: calc(180px + env(safe-area-inset-bottom, 16px));
+  right: 16px;
+  z-index: 10;
+  background-color: #ffffff;
+  color: #333333;
+  border: 1px solid #cccccc;
+  border-radius: 24px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}

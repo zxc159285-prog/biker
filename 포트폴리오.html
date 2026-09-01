@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biker - 프론트엔드 포트폴리오 PPT</title>
+    <!-- FontAwesome & Pretendard Font -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, sans-serif; }
+        html, body { width: 100vw; height: 100vh; overflow: hidden; background: #0f172a; color: #1e293b; }
+        
+        .slide-viewport { width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1rem 1rem 3.2rem 1rem; position: relative; }
+        
+        /* Master Slide Container */
+        .slide { display: none; width: 100%; max-width: 1450px; height: 86vh; background: #fbf9f4; border-radius: 20px; border: 1px solid #e2ddd0; padding: 1.5rem 2.2rem 0.9rem 2.2rem; box-shadow: 0 30px 40px -10px rgba(0,0,0,0.5); overflow: hidden; position: relative; }
+        .slide.active { display: flex; flex-direction: column; justify-content: space-between; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
+        
+        /* Top Tag Header */
+        .slide-tag { display: flex; align-items: center; gap: 0.5rem; font-size: 0.83rem; font-weight: 700; color: #5b6e58; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 0.3rem; flex-shrink: 0; }
+        .slide-tag .dots { display: flex; gap: 4px; }
+        .slide-tag .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+        .slide-tag .dot.orange { background: #f97316; }
+        .slide-tag .dot.blue { background: #0284c7; }
+        
+        /* Slide Main Header */
+        .slide-title { font-size: 1.85rem; font-weight: 800; color: #142a1e; margin-bottom: 0.2rem; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+        .slide-subtitle { font-size: 0.94rem; color: #526050; margin-bottom: 0.8rem; font-weight: 500; flex-shrink: 0; }
+        .badge { background: #e2f0d9; color: #163324; padding: 0.3rem 0.8rem; border-radius: 15px; font-size: 0.8rem; font-weight: 800; display: inline-block; }
+        .badge.my-role { background: #0284c7; color: #ffffff; }
+        
+        /* 3-Column Single-Page Feature Layout */
+        .single-page-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.1rem; flex: 1; min-height: 0; align-items: stretch; margin-bottom: 0.6rem; }
+        
+        /* Column Card Panels */
+        .panel { background: #ffffff; border: 1px solid #e5e1d5; border-radius: 14px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); height: 100%; box-sizing: border-box; }
+        .panel-title { font-size: 0.98rem; font-weight: 800; color: #163324; margin-bottom: 0.7rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 2px solid #edf4ea; padding-bottom: 0.4rem; flex-shrink: 0; }
+        
+        .panel p { font-size: 0.88rem; line-height: 1.5; color: #475569; margin-bottom: 0.5rem; }
+        .panel ul { list-style: none; padding-left: 0; }
+        .panel li { font-size: 0.85rem; color: #334155; margin-bottom: 0.45rem; padding-left: 1.1rem; position: relative; line-height: 1.48; }
+        .panel li::before { content: "▸"; position: absolute; left: 0; color: #0284c7; font-weight: bold; }
+        
+        /* Dark Code Block in Forest Green Style */
+        pre { background: #0c1c13; padding: 0.7rem 0.9rem; border-radius: 10px; font-size: 0.72rem; color: #f1f5f9; border: 1px solid #234732; flex: 1; font-family: 'Consolas', 'Courier New', monospace; line-height: 1.34; white-space: pre-wrap; word-break: break-all; overflow: visible; }
+        .code-keyword { color: #4ade80; font-weight: bold; }
+        .code-annotation { color: #facc15; font-weight: bold; }
+        .code-string { color: #fb923c; }
+        .code-comment { color: #64748b; font-style: italic; }
+        
+        /* Flowchart Node Styling */
+        .flow-node { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem 0.7rem; font-size: 0.76rem; font-weight: 700; color: #1e293b; text-align: center; }
+        .flow-node.highlight { background: #0284c7; color: #ffffff; border-color: #0284c7; }
+        .flow-node.teal { background: #064e3b; color: #a7f3d0; border-color: #064e3b; }
+
+        /* Bottom Footer */
+        .slide-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e8e4d8; padding-top: 0.5rem; margin-top: auto; font-size: 0.78rem; font-weight: 700; color: #64748b; flex-shrink: 0; }
+        
+        /* Fixed Floating Bottom Navigation Controller */
+        .nav-bar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; align-items: center; justify-content: center; gap: 1.2rem; background: rgba(15, 23, 42, 0.90); backdrop-filter: blur(10px); padding: 0.4rem 1.4rem; border-radius: 40px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .nav-btn { background: #0284c7; color: #ffffff; border: 1px solid rgba(2, 132, 199, 0.5); padding: 0.45rem 1.2rem; border-radius: 30px; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem; }
+        .nav-btn:hover { background: #38bdf8; color: #0f172a; transform: translateY(-1px); }
+        .nav-btn:disabled { background: #334155; color: #64748b; border-color: transparent; opacity: 0.5; cursor: not-allowed; transform: none; }
+        .nav-counter { color: #f8fafc; font-weight: 800; font-size: 1.0rem; letter-spacing: 1px; width: 75px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="slide-viewport">
+    <!-- SLIDE 01: COVER -->
+    <div class="slide active" style="padding: 0; overflow: hidden; border: none;">
+        <div style="display: grid; grid-template-columns: 1.3fr 1fr; width: 100%; height: 100%;">
+            <div style="background: #fbf9f4; padding: 4rem; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div class="slide-tag">
+                        <div class="dots"><div class="dot blue"></div><div class="dot orange"></div></div>
+                        PERSONAL PROJECT · BIKER
+                    </div>
+                    <span style="background: #e0f2fe; color: #0284c7; padding: 0.3rem 0.8rem; border-radius: 15px; font-size: 0.8rem; font-weight: 800; display: inline-block; margin-top: 1.5rem; margin-bottom: 1.5rem;">2026 · 개인 프로젝트 (AI 페어 프로그래밍)</span>
+                    <h1 style="font-size: 4.5rem; font-weight: 900; color: #0f172a; line-height: 1.05; margin-bottom: 1rem; letter-spacing: -1.5px;">Biker<span style="color: #0284c7;">.</span></h1>
+                    <p style="font-size: 1.3rem; color: #475569; font-weight: 600; margin-bottom: 2.5rem;">배달 이륜차를 위한 서버리스 하이브리드 내비게이션</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <span class="badge" style="background: #0f172a; color: white;">React 18</span>
+                        <span class="badge" style="background: #0f172a; color: white;">Vite</span>
+                        <span class="badge" style="background: #0f172a; color: white;">Kakao Map Web API</span>
+                        <span class="badge" style="background: #0f172a; color: white;">BRouter (OSM)</span>
+                        <span class="badge" style="background: #0f172a; color: white;">Serverless</span>
+                    </div>
+                </div>
+                <div style="font-size: 0.85rem; font-weight: 800; color: #64748b; letter-spacing: 1px;">BIKER NAVIGATION</div>
+            </div>
+            <div style="background: #0f172a; color: white; padding: 4rem; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #38bdf8; letter-spacing: 1.5px; margin-bottom: 2rem;">PRESENTED BY</div>
+                    <h2 style="font-size: 3rem; font-weight: 900; line-height: 1.2; margin-bottom: 0.5rem;">조종현</h2>
+                    <p style="font-size: 1.1rem; color: #cbd5e1; margin-bottom: 3rem;">Product Engineer (기획, 프론트엔드, 시스템 설계 전담)</p>
+                    <div style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 1.8rem;">
+                        <p style="font-size: 1.1rem; font-weight: 700; color: #38bdf8;">핵심 포트폴리오 기여 요약</p>
+                        <p style="font-size: 0.95rem; color: #e2e8f0; margin-top: 0.6rem; line-height: 1.6;">• 카카오 지도 & BRouter API 하이브리드 설계<br>• 벡터 내적(Dot Product)을 활용한 수학적 불법 U턴 감지 레이더 구축<br>• 투영 알고리즘 기반 40m 경로 이탈 감지 및 자동 재탐색(Auto-Rerouting)<br>• 서버 유지비용 0원의 클라이언트 사이드 연산 고도화</p>
+                    </div>
+                </div>
+                <div style="font-size: 0.85rem; font-weight: 700; color: #86efac; text-align: right;">01 / 06 · MASTER PORTFOLIO</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SLIDE 02: OVERVIEW & SYSTEM ARCHITECTURE -->
+    <div class="slide">
+        <div class="slide-tag"><div class="dots"><div class="dot blue"></div><div class="dot orange"></div></div> BIKER · OVERVIEW & SYSTEM ARCHITECTURE</div>
+        <div class="slide-title">
+            <span>[프로젝트 개요] 이륜차 특화 내비게이션 기획 & 서버리스 아키텍처</span>
+            <span class="badge my-role">기획 및 프론트엔드 구현 100% 전담</span>
+        </div>
+        <p class="slide-subtitle">상용 내비게이션의 한계를 극복하기 위한 오픈소스 결합 및 API 중심(API-Driven) 아키텍처 흐름도.</p>
+
+        <div class="single-page-grid" style="grid-template-columns: 1fr 1.25fr 1.15fr;">
+            <!-- Col 1: Service Overview & Background -->
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-info-circle"></i>서비스 개요 & 기획 배경</div>
+                <p style="font-size: 0.86rem; line-height: 1.55; color: #334155; margin-bottom: 0.6rem;">
+                    <b>Biker</b>는 기존 상용 앱(카카오, T맵)이 안전상의 이유로 배달 오토바이에 필수적인 <b>'골목길 숏컷'</b>을 안내하지 못하는 한계를 극복하기 위해 기획된 이륜차 전용 하이브리드 내비게이션입니다.
+                </p>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9px; padding: 0.75rem; margin-top: 0.4rem;">
+                    <div style="font-size: 0.82rem; font-weight: bold; color: #0284c7; margin-bottom: 0.3rem;"><i class="fas fa-bullseye me-1"></i>핵심 문제 해결</div>
+                    <ul style="font-size: 0.78rem; color: #475569;">
+                        <li>상용 데이터 대신 전 세계 자원봉사자가 구축한 오픈스트리트맵(OSM) 기반 BRouter 엔진 채택</li>
+                        <li>백엔드 구축 없이 브라우저 연산만으로 서버 비용 0원 달성 (Serverless)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Col 2: Developer Role -->
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-user-check"></i>지원자(조종현) 핵심 역할</div>
+                <ul style="font-size: 0.84rem; line-height: 1.5; color: #334155;">
+                    <li><b>하이브리드 아키텍처 설계</b>: 카카오 지도의 시각적 API와 유럽 BRouter의 GeoJSON 라우팅 데이터를 통합.</li>
+                    <li><b>AI 페어 프로그래밍 주도</b>: AI(LLM)에게 명확한 도메인 지식과 로직을 지시하여 단기간에 고도화된 기능 구현.</li>
+                    <li><b>하드웨어 API 제어</b>: Geolocation API를 통한 초당 위치 추적 및 WakeLock API로 모바일 화면 꺼짐 방지 구현.</li>
+                    <li><b>UX 리스크 최적화</b>: 교통상황 타일(Traffic) 시인성 조절 및 법적 책임 한계 고지(EULA) 적용.</li>
+                </ul>
+            </div>
+
+            <!-- Col 3: System Architecture Sequence Flow -->
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-sitemap"></i>API-Driven 서버리스 아키텍처</div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.3rem;">
+                    <div class="flow-node highlight">React (Vite) / 브라우저 클라이언트</div>
+                    <div style="text-align: center; color: #0284c7; font-size: 0.78rem; font-weight: bold;">↓ 비동기(Fetch) 데이터 통신</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                        <div class="flow-node" style="font-size: 0.72rem;">카카오 지도 Web API<br><span style="font-weight: normal; color: #64748b;">지도 타일 / 마커 렌더링</span></div>
+                        <div class="flow-node" style="font-size: 0.72rem;">BRouter (OSM) API<br><span style="font-weight: normal; color: #64748b;">최단거리 숏컷 좌표 반환</span></div>
+                    </div>
+                    <div style="text-align: center; color: #0284c7; font-size: 0.78rem; font-weight: bold;">↓ 브라우저 내장(Web API) 제어</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                        <div class="flow-node" style="font-size: 0.72rem; background: #f0fdf4; border-color: #16a34a;">Geolocation API<br><span style="font-weight: normal; color: #64748b;">초당 GPS 좌표/방향 수신</span></div>
+                        <div class="flow-node" style="font-size: 0.72rem; background: #f0fdf4; border-color: #16a34a;">WakeLock API<br><span style="font-weight: normal; color: #64748b;">주행 중 화면 유지</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>02 / 06</span></div>
+    </div>
+
+    <!-- SLIDE 03: CORE TECH 1 - U-TURN RADAR -->
+    <div class="slide">
+        <div class="slide-tag"><div class="dots"><div class="dot blue"></div><div class="dot orange"></div></div> CORE TECH 1 · VECTOR MATHEMATICS</div>
+        <div class="slide-title">
+            <span>[핵심 기술 1] 벡터 내적(Dot Product)을 활용한 수학적 U턴 감지 레이더</span>
+            <span class="badge my-role">데이터의 한계를 알고리즘으로 극복</span>
+        </div>
+        <p class="slide-subtitle">오픈스트리트맵(OSM)의 한국 법규 데이터 누락으로 인한 '불법 U턴' 안내 버그를 프론트엔드 연산으로 자체 해결했습니다.</p>
+
+        <div class="single-page-grid" style="grid-template-columns: 1fr 2.4fr;">
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-bug"></i>문제 상황 (데이터 결함)</div>
+                <p style="font-size: 0.86rem; line-height: 1.55; color: #334155;">
+                    BRouter 엔진은 빠르지만, 한국의 '진입 금지', '불법 U턴' 속성이 오픈스트리트맵에 거의 등록되어 있지 않아 <b>위험한 불법 U턴 경로를 그대로 안내하는 치명적 결함</b>이 발견되었습니다. 데이터베이스를 직접 수정할 수 없는 상황에서 자체적인 스캔 엔진이 필요했습니다.
+                </p>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-lightbulb"></i>해결 방안: 벡터 코사인 제2법칙 적용</div>
+                <p style="font-size: 0.86rem; line-height: 1.55; color: #334155; margin-bottom: 0.8rem;">
+                    연속된 3개의 GPS 좌표(A, B, C)를 두 개의 벡터로 치환한 뒤, <b>벡터의 내적과 아크코사인(Math.acos) 함수</b>를 이용해 각도를 계산했습니다. 꺾이는 각도가 150도 이상일 경우 이를 '비정상적 U턴'으로 규정하고 지도 위에 경고 마커를 렌더링합니다.
+                </p>
+                <pre>
+<span class="code-comment">// BRouter가 반환한 경로 배열을 순회하며 U턴 색출</span>
+<span class="code-keyword">const</span> <span class="code-annotation">detectAndMarkUTurns</span> = (pathCoordinates, map) => {
+    <span class="code-keyword">for</span> (<span class="code-keyword">let</span> i = 0; i < pathCoordinates.length - 2; i++) {
+        <span class="code-keyword">const</span> p1 = pathCoordinates[i];
+        <span class="code-keyword">const</span> p2 = pathCoordinates[i+1]; <span class="code-comment">// 꼭짓점</span>
+        <span class="code-keyword">const</span> p3 = pathCoordinates[i+2];
+
+        <span class="code-comment">// 두 벡터 구하기</span>
+        <span class="code-keyword">const</span> v1 = { x: p1.getLng() - p2.getLng(), y: p1.getLat() - p2.getLat() };
+        <span class="code-keyword">const</span> v2 = { x: p3.getLng() - p2.getLng(), y: p3.getLat() - p2.getLat() };
+
+        <span class="code-comment">// 벡터 내적 및 아크코사인 각도 도출</span>
+        <span class="code-keyword">const</span> dot = v1.x * v2.x + v1.y * v2.y;
+        <span class="code-keyword">const</span> mag1 = Math.sqrt(v1.x*v1.x + v1.y*v1.y);
+        <span class="code-keyword">const</span> mag2 = Math.sqrt(v2.x*v2.x + v2.y*v2.y);
+        <span class="code-keyword">let</span> angle = Math.acos(dot / (mag1 * mag2)) * (180 / Math.PI);
+
+        <span class="code-keyword">if</span> (angle <= 30) { <span class="code-comment">// 내각 30도 이하 (진행 방향 150도 이상 급격한 회전)</span>
+            <span class="code-annotation">renderWarningMarker</span>(p2, map);
+        }
+    }
+};</pre>
+            </div>
+        </div>
+        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>03 / 06</span></div>
+    </div>
+
+    <!-- SLIDE 04: CORE TECH 2 - AUTO REROUTING -->
+    <div class="slide">
+        <div class="slide-tag"><div class="dots"><div class="dot blue"></div><div class="dot orange"></div></div> CORE TECH 2 · AUTO-REROUTING & CLIENT COMPUTATION</div>
+        <div class="slide-title">
+            <span>[핵심 기술 2] 투영 거리 기반 경로 이탈 감지 및 자동 재탐색</span>
+            <span class="badge my-role">클라이언트 연산 고도화 (서버 비용 0원)</span>
+        </div>
+        <p class="slide-subtitle">실시간 위치(GPS)가 기존 경로에서 이탈했는지를 초당 연산하여, 한계점(40m) 초과 시 백그라운드 재탐색을 수행합니다.</p>
+
+        <div class="single-page-grid" style="grid-template-columns: 1fr 2.4fr;">
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-satellite"></i>초당 하버사인(Haversine) 연산</div>
+                <p style="font-size: 0.86rem; line-height: 1.55; color: #334155;">
+                    사용자가 경로를 벗어났는지 확인하려면 '현재 위치'와 '전체 수만 개의 경로 선분' 사이의 <b>가장 가까운 직교 투영 거리(최단 거리)</b>를 구해야 합니다. 지구의 곡률을 고려한 하버사인 공식을 클라이언트(브라우저) 환경에서 초당 1회씩 직접 연산하여 백엔드 부하를 완벽히 제거했습니다.
+                </p>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-route"></i>거리 기반 상태 관리 (Auto-Rerouting) 알고리즘</div>
+                <p style="font-size: 0.86rem; line-height: 1.55; color: #334155; margin-bottom: 0.8rem;">
+                    단순히 타이머에 의존하지 않고, 정확하게 40m 이상 이탈한 경우에만 <code>useEffect</code>를 통해 자동 재탐색 로직을 Trigger하여 무의미한 API 호출을 방지합니다.
+                </p>
+                <pre>
+<span class="code-comment">// React 상태 변화를 감지하는 자동 재탐색 엔진</span>
+useEffect(() => {
+    <span class="code-keyword">if</span> (!currentPosition || !activeRoute) <span class="code-keyword">return</span>;
+    
+    <span class="code-comment">// 전체 경로 선분 중 내 현재 위치와 가장 가까운 선분까지의 거리 연산 (미터 단위)</span>
+    <span class="code-keyword">const</span> distanceToPath = <span class="code-annotation">calculateMinDistanceToPath</span>(currentPosition, activeRoute);
+    
+    <span class="code-keyword">if</span> (distanceToPath > 40 && !isRerouting) {
+        setIsRerouting(<span class="code-keyword">true</span>);
+        <span class="code-comment">// 이탈 감지 됨: 현재 위치를 출발지로 새 경로 API 백그라운드 호출</span>
+        <span class="code-annotation">handleAutoReroute</span>(currentPosition.lat, currentPosition.lng)
+            .finally(() => setIsRerouting(<span class="code-keyword">false</span>));
+    }
+}, [currentPosition]); <span class="code-comment">// 1초 단위로 업데이트되는 GPS 상태에 의존</span>
+                </pre>
+            </div>
+        </div>
+        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>04 / 06</span></div>
+    </div>
+
+    <!-- SLIDE 05: FUNCTIONAL TROUBLESHOOTING -->
+    <div class="slide">
+        <div class="slide-tag"><div class="dots"><div class="dot blue"></div><div class="dot orange"></div></div> TROUBLESHOOTING · FUNCTIONAL OPTIMIZATION</div>
+        <div class="slide-title">
+            <span>[트러블슈팅] 프론트엔드 렌더링 최적화 및 GPS 노이즈 제어</span>
+            <span class="badge my-role">기능 결함 해결 사례</span>
+        </div>
+        <p class="slide-subtitle">모바일 기기 센서의 한계와 React 렌더링 특성으로 인해 발생한 치명적인 기능적 결함을 프론트엔드 로직으로 해결했습니다.</p>
+        
+        <div class="single-page-grid" style="grid-template-columns: 1fr 1.4fr;">
+            <!-- Issue 1: Rendering Lag -->
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-microchip"></i>이슈 1: 방향 센서(Heading) 렌더링 지연</div>
+                <p style="font-size: 0.86rem; line-height: 1.55; color: #334155; margin-bottom: 0.8rem;">
+                    <b>[현상]</b> 스마트폰 방향 센서가 초당 수십 번씩 갱신될 때, React의 <code>useState</code>로 마커 각도를 관리하자 지도 컴포넌트 전체가 재렌더링되며 심각한 프레임 드랍(버벅임)이 발생했습니다.
+                </p>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9px; padding: 0.75rem;">
+                    <div style="font-size: 0.82rem; font-weight: bold; color: #0284c7; margin-bottom: 0.3rem;">[해결] Native DOM 직접 제어 (useRef)</div>
+                    <p style="font-size: 0.78rem; color: #475569;">
+                        React의 가상 DOM 상태 관리를 우회했습니다. 순수 DOM 요소(div)를 <code>useRef</code>에 담아 카카오 마커 객체에 주입한 뒤, 센서 값 변경 시 <code>style.transform = `rotate(${deg})`</code> 속성만 직접 변이(Mutation)시켜 재렌더링 없는 60fps 부드러운 회전을 달성했습니다.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Issue 2: GPS Noise / Rerouting Bounce -->
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-satellite-dish"></i>이슈 2: GPS 노이즈로 인한 무한 재탐색(Bouncing) 제어</div>
+                <p style="font-size: 0.86rem; line-height: 1.55; color: #334155; margin-bottom: 0.8rem;">
+                    <b>[현상]</b> 도심 빌딩 숲에서 GPS 신호가 순간적으로 튀는(Noise) 현상 때문에, 실제로는 이탈하지 않았음에도 '40m 이탈' 조건이 충족되어 재탐색 로직이 무한 반복(Infinite Loop) 실행되는 마비 현상이 발생했습니다.
+                </p>
+                <pre>
+<span class="code-comment">// [해결] 상태 락(Mutex Lock) 및 쿨타임(Debounce) 메커니즘 적용</span>
+<span class="code-keyword">const</span> [isRerouting, setIsRerouting] = useState(<span class="code-keyword">false</span>);
+
+useEffect(() => {
+    <span class="code-comment">// 이탈 조건 만족 시, 현재 재탐색 중(Lock)이 아닐 때만 1회 실행 보장</span>
+    <span class="code-keyword">if</span> (distance > 40 && !isRerouting) {
+        <span class="code-annotation">setIsRerouting</span>(<span class="code-keyword">true</span>); <span class="code-comment">// Lock On: 후속 GPS 노이즈 무시</span>
+
+        handleAutoReroute(currentPosition.lat, currentPosition.lng)
+            .finally(() => {
+                <span class="code-comment">// 통신이 완료되어도 3초의 쿨타임 유지 후 Lock 해제</span>
+                <span class="code-comment">// (신규 경로와 GPS가 일치하도록 안정화될 시간을 벌어줌)</span>
+                setTimeout(() => <span class="code-annotation">setIsRerouting</span>(<span class="code-keyword">false</span>), 3000);
+            });
+    }
+}, [currentPosition]);</pre>
+            </div>
+        </div>
+        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>05 / 06</span></div>
+    </div>
+
+    <!-- SLIDE 06: LIMITATIONS & FUTURE WORK (Including cameras, TTS, data inaccuracies) -->
+    <div class="slide">
+        <div class="slide-tag"><div class="dots"><div class="dot blue"></div><div class="dot orange"></div></div> LIMITATIONS & ADVANCEMENT PLAN</div>
+        <div class="slide-title">
+            <span>[한계 및 고도화 방안] 상용 서비스 대비 부재 기능과 극복 로드맵</span>
+            <span class="badge my-role">Next Step</span>
+        </div>
+        <p class="slide-subtitle">1인 개인 프로젝트가 가지는 데이터 수급의 태생적 한계점을 명확히 인지하고, 이를 상용 수준으로 고도화하기 위한 방안입니다.</p>
+
+        <div class="single-page-grid">
+            <!-- Limit 1: Visual/Routing -->
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-palette"></i>한계 1: 경로 렌더링 및 정적 라우팅</div>
+                <p style="font-size: 0.86rem; line-height: 1.55; color: #334155;">
+                    <b>[한계점]</b> 시스템 분리로 인해 경로 선 자체를 실시간 교통상황(초록/빨강) 색상으로 칠할 수 없습니다. 또한 실시간 트래픽 데이터를 배제하고 물리적 최단 거리만 계산하기 때문에, 차가 없는 새벽 시간대에도 뻥 뚫린 대로변을 놔두고 좁은 골목길만 고집하는 약점이 있습니다.
+                </p>
+                <div style="background: #f0fdf4; border: 1px solid #16a34a; border-radius: 9px; padding: 0.75rem; margin-top: 0.4rem;">
+                    <div style="font-size: 0.82rem; font-weight: bold; color: #163324; margin-bottom: 0.3rem;"><i class="fas fa-rocket me-1"></i>고도화 방향</div>
+                    <p style="font-size: 0.78rem; color: #475569;">
+                        국가교통정보센터(ITS) 트래픽 데이터와 연동하여, 심야 등 도로가 원활한 시간대에는 알고리즘의 골목길 가중치를 낮추고 대로변 위주로 안내하는 동적 시스템을 설계할 계획입니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Limit 2: OSM Data -->
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-map-marked-alt"></i>한계 2: 해외 오픈소스 데이터 오류</div>
+                <p style="font-size: 0.86rem; line-height: 1.55; color: #334155;">
+                    <b>[한계점]</b> BRouter가 사용하는 오픈스트리트맵(OSM)은 해외 자원봉사자 데이터베이스입니다. 이로 인해 국내 도로 사정(특히 좁은 골목길의 일방통행, 최근 변경된 진입금지 및 유턴 구역 정보) 업데이트가 상용 앱(T맵 등)보다 느리거나 실제 법규와 조금 다를 수 있습니다.
+                </p>
+                <div style="background: #f0fdf4; border: 1px solid #16a34a; border-radius: 9px; padding: 0.75rem; margin-top: 0.4rem;">
+                    <div style="font-size: 0.82rem; font-weight: bold; color: #163324; margin-bottom: 0.3rem;"><i class="fas fa-rocket me-1"></i>고도화 방향</div>
+                    <p style="font-size: 0.78rem; color: #475569;">
+                        사용자가 위험한 역주행 길을 안내받았을 때 즉시 '신고'할 수 있는 기능을 신설하여, 해당 Node를 자체 DB에서 영구 마스킹하는 집단지성 피드백 루프를 구축합니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Limit 3: Cameras & Voice -->
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-volume-up"></i>한계 3: 안전 정보 및 음성 안내 부재</div>
+                <p style="font-size: 0.86rem; line-height: 1.55; color: #334155;">
+                    <b>[한계점]</b> 주행 시 1초가 급한 배달 라이더에게 필수적인 과속 카메라, 스쿨존, 불법 주정차 단속 구역에 대한 알림 기능이 전무하며, 화면을 보지 않고도 주행할 수 있도록 도와주는 실시간 Turn-by-Turn 음성 안내 기능이 지원되지 않습니다.
+                </p>
+                <div style="background: #f0fdf4; border: 1px solid #16a34a; border-radius: 9px; padding: 0.75rem; margin-top: 0.4rem;">
+                    <div style="font-size: 0.82rem; font-weight: bold; color: #163324; margin-bottom: 0.3rem;"><i class="fas fa-rocket me-1"></i>고도화 방향</div>
+                    <p style="font-size: 0.78rem; color: #475569;">
+                        '공공데이터포털'의 단속 카메라/스쿨존 좌표 데이터를 DB화하여 지도에 매핑하고, 브라우저의 Web Speech API (TTS)를 도입하여 300m 앞 좌/우회전 및 과속 경고를 음성으로 송출하도록 고도화합니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>06 / 06</span></div>
+    </div>
+
+    <!-- NAV BAR -->
+    <div class="nav-bar">
+       <button class="nav-btn" id="prevBtn"><i class="fas fa-chevron-left"></i> 이전</button>
+       <div class="nav-counter"><span id="currentSlide">1</span> / 6</div>
+       <button class="nav-btn" id="nextBtn">다음 <i class="fas fa-chevron-right"></i></button>
+    </div>
+</div>
+
+<script>
+    const slides = document.querySelectorAll('.slide');
+    const nextBtn = document.getElementById('nextBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const currentSlideSpan = document.getElementById('currentSlide');
+    let current = 0;
+
+    function updateNav() {
+        currentSlideSpan.innerText = current + 1;
+        prevBtn.disabled = current === 0;
+        nextBtn.disabled = current === slides.length - 1;
+    }
+
+    nextBtn.onclick = () => {
+        if (current < slides.length - 1) {
+            slides[current].classList.remove('active');
+            current++;
+            slides[current].classList.add('active');
+            updateNav();
+        }
+    };
+
+    prevBtn.onclick = () => {
+        if (current > 0) {
+            slides[current].classList.remove('active');
+            current--;
+            slides[current].classList.add('active');
+            updateNav();
+        }
+    };
+    
+    updateNav();
+</script>
+</body>
+</html>
