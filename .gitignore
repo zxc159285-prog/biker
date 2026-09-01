@@ -28,3 +28,6 @@ dist-ssr
 .env.local
 .env.*
 .vercel
+
+# 원본 공공데이터 파일 깃허브 업로드 차단 (용량 최적화)
+전국*.json
