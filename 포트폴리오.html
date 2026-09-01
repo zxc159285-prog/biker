@@ -98,10 +98,10 @@
                     <p style="font-size: 1.1rem; color: #cbd5e1; margin-bottom: 3rem;">Product Engineer (기획, 프론트엔드, 시스템 설계 전담)</p>
                     <div style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 1.8rem;">
                         <p style="font-size: 1.1rem; font-weight: 700; color: #38bdf8;">핵심 포트폴리오 기여 요약</p>
-                        <p style="font-size: 0.95rem; color: #e2e8f0; margin-top: 0.6rem; line-height: 1.6;">• 카카오 지도 & BRouter API 하이브리드 설계<br>• 벡터 내적(Dot Product)을 활용한 수학적 불법 U턴 감지 레이더 구축<br>• 투영 알고리즘 기반 40m 경로 이탈 감지 및 자동 재탐색(Auto-Rerouting)<br>• 서버 유지비용 0원의 클라이언트 사이드 연산 고도화</p>
+                        <p style="font-size: 0.95rem; color: #e2e8f0; margin-top: 0.6rem; line-height: 1.6;">• 카카오 지도 & BRouter API 하이브리드 설계<br>• 벡터 내적(Dot Product)을 활용한 수학적 불법 U턴 감지 레이더 구축<br>• 공공데이터 가비지 컬렉션 및 TTS 음성 경고 최적화 도입<br>• 서버 유지비용 0원의 클라이언트 사이드 연산 고도화</p>
                     </div>
                 </div>
-                <div style="font-size: 0.85rem; font-weight: 700; color: #86efac; text-align: right;">01 / 06 · MASTER PORTFOLIO</div>
+                <div style="font-size: 0.85rem; font-weight: 700; color: #86efac; text-align: right;">01 / 07 · MASTER PORTFOLIO</div>
             </div>
         </div>
     </div>
@@ -160,7 +160,7 @@
                 </div>
             </div>
         </div>
-        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>02 / 06</span></div>
+        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>02 / 07</span></div>
     </div>
 
     <!-- SLIDE 03: CORE TECH 1 - U-TURN RADAR -->
@@ -210,7 +210,7 @@
 };</pre>
             </div>
         </div>
-        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>03 / 06</span></div>
+        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>03 / 07</span></div>
     </div>
 
     <!-- SLIDE 04: CORE TECH 2 - AUTO REROUTING -->
@@ -253,10 +253,62 @@ useEffect(() => {
                 </pre>
             </div>
         </div>
-        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>04 / 06</span></div>
+        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>04 / 07</span></div>
     </div>
 
-    <!-- SLIDE 05: FUNCTIONAL TROUBLESHOOTING -->
+    <!-- SLIDE 05: CORE TECH 3 - TTS & GC -->
+    <div class="slide">
+        <div class="slide-tag"><div class="dots"><div class="dot blue"></div><div class="dot orange"></div></div> CORE TECH 3 · DATA PIPELINE & TTS</div>
+        <div class="slide-title">
+            <span>[핵심 기술 3] 대용량 공공데이터 렌더링 최적화 및 스마트 음성 경고</span>
+            <span class="badge my-role">가비지 컬렉션(GC)부터 Web API 통합까지</span>
+        </div>
+        <p class="slide-subtitle">수만 개의 공공데이터(JSON)로 인한 OOM(메모리 초과) 현상을 백엔드 전처리와 프론트엔드 공간 필터링으로 해결했습니다.</p>
+
+        <div class="single-page-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+            <!-- Panel 1: Node.js GC -->
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-trash-alt"></i>데이터 가비지 컬렉션 (GC)</div>
+                <p style="font-size: 0.86rem; line-height: 1.55; color: #334155;">
+                    <b>[현상]</b> 전국 단속카메라 5만여 개를 브라우저에 한 번에 주입 시 성능이 마비되고 이륜차와 무관한 데이터가 노이즈를 유발.
+                </p>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9px; padding: 0.75rem; margin-top: 0.4rem;">
+                    <div style="font-size: 0.82rem; font-weight: bold; color: #0284c7; margin-bottom: 0.3rem;">[해결] Node.js 전처리 필터링</div>
+                    <p style="font-size: 0.78rem; color: #475569;">
+                        <code>process_data.cjs</code> 스크립트를 짜서 단속유형(가변변수)을 분석, 이륜차와 무관한 데이터(1.2만 개)를 원천 Drop하여 용량을 30% 감축했습니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Panel 2: Spatial Filtering -->
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-map-marked-alt"></i>뷰포트 기반 공간 필터링</div>
+                <p style="font-size: 0.86rem; line-height: 1.55; color: #334155; margin-bottom: 0.8rem;">
+                    화면에 보이지 않는 마커까지 렌더링하는 낭비를 막기 위해 카카오맵의 <code>getBounds()</code>를 적극 활용했습니다.
+                </p>
+                <ul style="font-size: 0.84rem; line-height: 1.5; color: #334155;">
+                    <li><b>Bounds 필터링</b>: 현재 Viewport 내의 카메라만 필터링.</li>
+                    <li><b>렌더링 Cap</b>: 밀집 구역 렉 방지를 위해 <code>slice(0, 300)</code>으로 최대 300개 마커만 렌더링되게 통제.</li>
+                </ul>
+            </div>
+
+            <!-- Panel 3: Haversine TTS -->
+            <div class="panel">
+                <div class="panel-title"><i class="fas fa-volume-up"></i>하버사인 연산 & TTS 음성 송출</div>
+                <p style="font-size: 0.86rem; line-height: 1.55; color: #334155; margin-bottom: 0.8rem;">
+                    네이티브 앱 플러그인 없이, 웹 기술만으로 <b>반경 300m 이내 진입 시 음성 경고</b>를 구현했습니다.
+                </p>
+                <ul style="font-size: 0.84rem; line-height: 1.5; color: #334155;">
+                    <li><b>거리 연산</b>: 캐싱된 가시 데이터(300개)와 현재 GPS간 거리(Haversine)를 초당 계산.</li>
+                    <li><b>Web Speech API</b>: 카메라 타입별(후면/일반/스쿨존) 동적 텍스트 음성 송출.</li>
+                    <li><b>Set 캐싱</b>: 안내가 완료된 ID를 저장해 무한 중복 알림 차단.</li>
+                </ul>
+            </div>
+        </div>
+        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>05 / 07</span></div>
+    </div>
+
+    <!-- SLIDE 06: FUNCTIONAL TROUBLESHOOTING -->
     <div class="slide">
         <div class="slide-tag"><div class="dots"><div class="dot blue"></div><div class="dot orange"></div></div> TROUBLESHOOTING · FUNCTIONAL OPTIMIZATION</div>
         <div class="slide-title">
@@ -305,10 +357,10 @@ useEffect(() => {
 }, [currentPosition]);</pre>
             </div>
         </div>
-        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>05 / 06</span></div>
+        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>06 / 07</span></div>
     </div>
 
-    <!-- SLIDE 06: LIMITATIONS & FUTURE WORK (Including cameras, TTS, data inaccuracies) -->
+    <!-- SLIDE 07: LIMITATIONS & FUTURE WORK (Updated iOS limit) -->
     <div class="slide">
         <div class="slide-tag"><div class="dots"><div class="dot blue"></div><div class="dot orange"></div></div> LIMITATIONS & ADVANCEMENT PLAN</div>
         <div class="slide-title">
@@ -346,27 +398,27 @@ useEffect(() => {
                 </div>
             </div>
 
-            <!-- Limit 3: Cameras & Voice -->
+            <!-- Limit 3: iOS Background -->
             <div class="panel">
-                <div class="panel-title"><i class="fas fa-volume-up"></i>한계 3: 안전 정보 및 음성 안내 부재</div>
+                <div class="panel-title"><i class="fab fa-apple"></i>한계 3: 모바일 웹 백그라운드 정책 한계</div>
                 <p style="font-size: 0.86rem; line-height: 1.55; color: #334155;">
-                    <b>[한계점]</b> 주행 시 1초가 급한 배달 라이더에게 필수적인 과속 카메라, 스쿨존, 불법 주정차 단속 구역에 대한 알림 기능이 전무하며, 화면을 보지 않고도 주행할 수 있도록 도와주는 실시간 Turn-by-Turn 음성 안내 기능이 지원되지 않습니다.
+                    <b>[한계점]</b> 웹 브라우저(Safari, Chrome) 기반 내비게이션 특성상, 아이폰(iOS)에서는 스마트폰 화면이 꺼지거나 다른 앱으로 전환될 때 Geolocation(GPS 수신)과 TTS 음성 안내가 차단되는 브라우저 보안 정책적 한계가 존재합니다.
                 </p>
                 <div style="background: #f0fdf4; border: 1px solid #16a34a; border-radius: 9px; padding: 0.75rem; margin-top: 0.4rem;">
                     <div style="font-size: 0.82rem; font-weight: bold; color: #163324; margin-bottom: 0.3rem;"><i class="fas fa-rocket me-1"></i>고도화 방향</div>
                     <p style="font-size: 0.78rem; color: #475569;">
-                        '공공데이터포털'의 단속 카메라/스쿨존 좌표 데이터를 DB화하여 지도에 매핑하고, 브라우저의 Web Speech API (TTS)를 도입하여 300m 앞 좌/우회전 및 과속 경고를 음성으로 송출하도록 고도화합니다.
+                        추후 PWA(Progressive Web App)를 넘어 React Native나 Capacitor를 도입하여, 백그라운드 위치 추적 권한을 네이티브(Native) 앱 수준으로 획득하여 앱스토어에 정식 출시하는 것을 목표로 합니다.
                     </p>
                 </div>
             </div>
         </div>
-        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>06 / 06</span></div>
+        <div class="slide-footer"><span>BIKER PORTFOLIO</span><span>07 / 07</span></div>
     </div>
 
     <!-- NAV BAR -->
     <div class="nav-bar">
        <button class="nav-btn" id="prevBtn"><i class="fas fa-chevron-left"></i> 이전</button>
-       <div class="nav-counter"><span id="currentSlide">1</span> / 6</div>
+       <div class="nav-counter"><span id="currentSlide">1</span> / 7</div>
        <button class="nav-btn" id="nextBtn">다음 <i class="fas fa-chevron-right"></i></button>
     </div>
 </div>
