@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- 모바일 디버깅용 에러 추적 스크립트 -->
+    <script>
+      window.onerror = function(msg, url, lineNo, columnNo, error) {
+        alert("치명적 에러 발생: " + msg + "\n줄: " + lineNo);
+        return false;
+      };
+      window.addEventListener("unhandledrejection", function(e) {
+        alert("비동기 에러 발생: " + (e.reason ? e.reason.message || e.reason : '알 수 없음'));
+      });
+    </script>
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

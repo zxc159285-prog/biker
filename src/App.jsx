@@ -112,11 +112,15 @@ function App() {
       const visibleData = safemapData.filter(d => {
         if (d.lat < sw.getLat() || d.lat > ne.getLat() || d.lng < sw.getLng() || d.lng > ne.getLng()) return false;
         if (d.type === 'parking') return true;
-        if (hasRoute) {
+        if (hasRoute || (routePathKakaoRef.current && routePathKakaoRef.current.length > 0)) {
+          const distBRouter = hasRoute ? getDistanceToPath(d.lat, d.lng, currentPath) : Infinity;
+          const distKakao = (routePathKakaoRef.current && routePathKakaoRef.current.length > 0) ? getDistanceToPath(d.lat, d.lng, routePathKakaoRef.current) : Infinity;
+          const minDist = Math.min(distBRouter, distKakao);
+
           if (d.type === 'camera' || d.type === 'rear_camera') {
-            return getDistanceToPath(d.lat, d.lng, currentPath) <= 30;
+            return minDist <= 30;
           } else if (d.type === 'schoolzone') {
-            return getDistanceToPath(d.lat, d.lng, currentPath) <= 50;
+            return minDist <= 50;
           }
         }
         return false;

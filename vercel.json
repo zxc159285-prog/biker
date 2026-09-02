@@ -1,12 +1,12 @@
 {
   "rewrites": [
     {
-      "source": "/kakaonavi/(.*)",
-      "destination": "https://apis-navi.kakaomobility.com/"
+      "source": "/kakaonavi/:match*",
+      "destination": "https://apis-navi.kakaomobility.com/:match*"
     },
     {
-      "source": "/brouter-proxy/(.*)",
-      "destination": "https://brouter.de/"
+      "source": "/brouter-proxy/:match*",
+      "destination": "https://brouter.de/:match*"
     }
   ]
 }
