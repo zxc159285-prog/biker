@@ -789,7 +789,8 @@ function App() {
     <div className="map-wrapper">
       <div ref={mapContainerRef} className="map-container" />
 
-      {isNavigating && instructions.length > 0 && (
+      {/* 지도를 가리는 상단 로켓 배너 제거 (렌더링 스위치 강제 OFF) */}
+      {false && isNavigating && instructions.length > 0 && (
         <div className={`turn-banner ${instructions[currentStepIndex]?.isSchoolZone ? 'schoolzone-alert-mode' : ''}`}>
           <span className="turn-arrow">{instructions[currentStepIndex]?.arrow || '⬆️'}</span>
           <div className="turn-text-group">
