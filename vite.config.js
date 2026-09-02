@@ -3,6 +3,20 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  server: {
+    proxy: {
+      '/kakaonavi': {
+        target: 'https://apis-navi.kakaomobility.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/kakaonavi/, '')
+      },
+      '/brouter-proxy': {
+        target: 'https://brouter.de',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/brouter-proxy/, '')
+      }
+    }
+  },
   plugins: [
     react(),
     VitePWA({

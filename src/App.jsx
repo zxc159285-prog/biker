@@ -45,6 +45,7 @@ function App() {
   const startLocationMarkerRef = useRef(null);
   const destinationMarkerRef = useRef(null);
   const polylineRef = useRef(null);
+  const polylineKakaoRef = useRef(null);
   const uTurnMarkersRef = useRef([]);
 
   const watchIdRef = useRef(null);
@@ -54,6 +55,7 @@ function App() {
 
   const isNavigatingRef = useRef(false);
   const routePathRef = useRef([]);
+  const routePathKakaoRef = useRef([]);
   const isReroutingRef = useRef(false);
   const selectedDestRef = useRef(null);
 
@@ -226,34 +228,59 @@ function App() {
     }
   };
 
-  const handleAutoReroute = async (currentLat, currentLng) => {
+  const handleAutoReroute = async (currentLat, currentLng, isSilent = false) => {
     if (!selectedDestRef.current || isReroutingRef.current) return;
     isReroutingRef.current = true;
-    speakVoiceGuide("경로를 이탈하여 재탐색합니다.");
     
-    const routeResult = await fetchBRouterMopedRoute(currentLat, currentLng, selectedDestRef.current.lat, selectedDestRef.current.lng);
+    if (!isSilent) {
+      speakVoiceGuide("경로를 이탈하여 재탐색합니다.");
+    }
     
-    if (routeResult && routeResult.path.length > 0) {
+    // [경로 이탈 시에도 듀얼 라우팅 동시 재탐색]
+    const [brouterResult, kakaoResult] = await Promise.all([
+      fetchBRouterMopedRoute(currentLat, currentLng, selectedDestRef.current.lat, selectedDestRef.current.lng),
+      fetchKakaoNaviRoute(currentLat, currentLng, selectedDestRef.current.lat, selectedDestRef.current.lng)
+    ]);
+    
+    if (brouterResult && brouterResult.path.length > 0) {
       if (polylineRef.current) polylineRef.current.setMap(null);
+      if (polylineKakaoRef.current) polylineKakaoRef.current.setMap(null);
       uTurnMarkersRef.current.forEach(marker => marker.setMap(null));
       uTurnMarkersRef.current = [];
 
+      // 1. 카카오 안전 경로 (바닥)
+      if (kakaoResult && kakaoResult.path && kakaoResult.path.length > 0) {
+        const polylineKakao = new window.kakao.maps.Polyline({
+          path: kakaoResult.path,
+          strokeWeight: 8,
+          strokeColor: '#3366FF',
+          strokeOpacity: 0.8,
+          strokeStyle: 'solid',
+        });
+        polylineKakao.setZIndex(1);
+        polylineKakao.setMap(mapRef.current);
+        polylineKakaoRef.current = polylineKakao;
+      }
+
+      // 2. BRouter 숏컷 경로 (위)
       const polyline = new window.kakao.maps.Polyline({
-        path: routeResult.path,
-        strokeWeight: 6,
+        path: brouterResult.path,
+        strokeWeight: 4,
         strokeColor: '#FF3344',
-        strokeOpacity: 0.9,
-        strokeStyle: 'solid',
+        strokeOpacity: 1.0,
+        strokeStyle: 'shortdash',
       });
+      polyline.setZIndex(2);
       polyline.setMap(mapRef.current);
       polylineRef.current = polyline;
 
-      uTurnMarkersRef.current = detectAndMarkUTurns(routeResult.path, mapRef.current);
-      routePathRef.current = routeResult.path; 
+      uTurnMarkersRef.current = detectAndMarkUTurns(brouterResult.path, mapRef.current);
+      routePathRef.current = brouterResult.path; 
+      routePathKakaoRef.current = kakaoResult && kakaoResult.path ? kakaoResult.path : [];
       setRouteTrigger(p => p + 1);
 
-      const distanceKm = (routeResult.distance / 1000).toFixed(1);
-      const estimatedMinutes = Math.max(1, Math.round(routeResult.duration / 60));
+      const distanceKm = (brouterResult.distance / 1000).toFixed(1);
+      const estimatedMinutes = Math.max(1, Math.round(brouterResult.duration / 60));
       
       setRouteInfo(prev => ({
         ...prev,
@@ -281,10 +308,15 @@ function App() {
         }
 
         if (isNavigatingRef.current && routePathRef.current.length > 0 && !isReroutingRef.current) {
-          const distanceOffRoute = getDistanceToPath(lat, lng, routePathRef.current);
+          const distBRouter = getDistanceToPath(lat, lng, routePathRef.current);
+          const distKakao = routePathKakaoRef.current.length > 0 ? getDistanceToPath(lat, lng, routePathKakaoRef.current) : Infinity;
           
-          if (distanceOffRoute > 40) {
-            handleAutoReroute(lat, lng);
+          // 빨간 선과 파란 선 중 나와의 거리
+          const minDistance = Math.min(distBRouter, distKakao);
+          
+          if (minDistance > 20) {
+            // 1. 완전 이탈: 두 선 모두 20미터 밖으로 벗어남 -> 요란하게 하드 재탐색
+            handleAutoReroute(lat, lng, false);
           } else {
             // 정상 주행 시 카메라 접근 체크 (반경 300m 이내)
             visibleSafemapDataRef.current.forEach(camera => {
@@ -369,9 +401,45 @@ function App() {
     });
   };
 
+  let cachedCustomProfileId = null;
+
+  const getDynamicScooterProfile = async () => {
+    if (cachedCustomProfileId) return cachedCustomProfileId;
+    try {
+      // 1. 깃허브에서 골목길 숏컷에 최적화된 fastbike 원본 소스코드 실시간 획득
+      const res = await fetch('https://raw.githubusercontent.com/abrensch/brouter/master/misc/profiles2/fastbike.brf');
+      let text = await res.text();
+      
+      // 2. 역주행(reversedirection) 솜방망이 페널티 구역을 통째로 날려버리고 사형선고(10000)로 완벽 개조
+      text = text.replace(/assign onewaypenalty =[\s\S]*?# Eventually compute traffic penalty/, 'assign onewaypenalty = if badoneway then 10000 else 0.0\n\n# Eventually compute traffic penalty');
+      
+      // 3. 자전거도로, 보행자도로, 계단 진입 시 10000점 페널티를 주도록 costfactor 연산 개조
+      text = text.replace('assign costfactor\n', 'assign is_illegal = or highway=cycleway or highway=pedestrian highway=steps\nassign costfactor\n add switch is_illegal 10000 0\n');
+
+      // 4. 개조된 수천 줄의 알고리즘을 프록시 터널을 통해 BRouter 해시 서버에 POST 업로드
+      const uploadRes = await fetch('/brouter-proxy/brouter/profile', {
+        method: 'POST',
+        body: text
+      });
+      const uploadData = await uploadRes.json();
+      
+      if (uploadData.profileid) {
+        cachedCustomProfileId = uploadData.profileid;
+        return cachedCustomProfileId;
+      }
+    } catch (e) {
+      console.error("커스텀 알고리즘 주입 실패 (moped로 대체):", e);
+    }
+    return 'moped'; // 실패 시 안전한 합법 기본값으로 폴백
+  };
+
   const fetchBRouterMopedRoute = async (startLat, startLng, endLat, endLng) => {
     try {
-      const url = `https://brouter.de/brouter?lonlats=${startLng},${startLat}|${endLng},${endLat}&profile=moped&alternativeidx=0&format=geojson`;
+      // 실시간으로 튜닝된 궁극의 해시 아이디(custom_xxx) 획득
+      const profileId = await getDynamicScooterProfile();
+
+      // 프록시 터널(/brouter-proxy)을 경유하여 해시 아이디로 GET 길찾기 요청
+      const url = `/brouter-proxy/brouter?lonlats=${startLng},${startLat}|${endLng},${endLat}&profile=${profileId}&alternativeidx=0&format=geojson`;
       const response = await fetch(url);
       
       if (response.ok) {
@@ -383,14 +451,14 @@ function App() {
           const distance = parseInt(feature.properties['track-length'] || 0, 10);
           const duration = parseInt(feature.properties['total-time'] || 0, 10);
           const steps = [
-            { arrow: '🚀', text: '오토바이 숏컷 진입 (경로 이탈 시 자동 재탐색)', distance: distance, alertBadgeText: '불법 U턴 탐지 레이더 가동중' },
-            { arrow: '🏁', text: '지도의 붉은 선을 따라가되, 표지판을 반드시 확인하세요.', distance: 0 }
+            { arrow: '🚀', text: '오토바이 전용 극한 숏컷 진입 (역주행/계단/자전거도로 원천 차단됨)', distance: distance, alertBadgeText: '골목길 우회 활성화' },
+            { arrow: '🏁', text: '목적지 부근에 도착합니다.', distance: 0 }
           ];
           return { path: linePath, distance, duration, steps };
         }
       }
     } catch (e) {
-      console.error('BRouter 탐색 실패:', e);
+      console.error('BRouter 커스텀 탐색 실패:', e);
     }
     return null;
   };
@@ -424,6 +492,41 @@ function App() {
     return markers;
   };
 
+  const fetchKakaoNaviRoute = async (startLat, startLng, endLat, endLng) => {
+    try {
+      // 카카오내비 이륜차(car_type=7) 최단거리 숏컷(priority=DISTANCE) 요청
+      const KAKAO_URL = `/kakaonavi/v1/directions?origin=${startLng},${startLat}&destination=${endLng},${endLat}&car_type=7&priority=DISTANCE`;
+      const KAKAO_REST_API_KEY = import.meta.env.VITE_KAKAO_REST_KEY; // 환경변수 수칙 11 준수
+
+      const response = await fetch(KAKAO_URL, {
+        method: 'GET',
+        headers: {
+          'Authorization': `KakaoAK ${KAKAO_REST_API_KEY}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          const path = [];
+          route.sections.forEach(section => {
+            section.roads.forEach(road => {
+              for (let i = 0; i < road.vertexes.length; i += 2) {
+                path.push(new window.kakao.maps.LatLng(road.vertexes[i + 1], road.vertexes[i]));
+              }
+            });
+          });
+          const distance = route.summary.distance || 0;
+          const duration = route.summary.duration || 0;
+          return { path, distance, duration };
+        }
+      }
+    } catch (e) {
+      console.error('카카오내비 안전 경로 탐색 실패:', e);
+    }
+    return null;
+  };
+
   const runRouteSearch = async (startObj, destObj) => {
     if (!destObj) return;
     let startLat = startObj && startObj.lat;
@@ -440,48 +543,75 @@ function App() {
       }
     }
 
-    const routeResult = await fetchBRouterMopedRoute(startLat, startLng, destObj.lat, destObj.lng);
-    if (!routeResult || !routeResult.path || routeResult.path.length === 0) {
+    // [듀얼 라우팅] 카카오(안전로)와 BRouter(숏컷) 두 엔진에 동시 요청!
+    const [brouterResult, kakaoResult] = await Promise.all([
+      fetchBRouterMopedRoute(startLat, startLng, destObj.lat, destObj.lng),
+      fetchKakaoNaviRoute(startLat, startLng, destObj.lat, destObj.lng)
+    ]);
+
+    if (!brouterResult || !brouterResult.path || brouterResult.path.length === 0) {
       alert('경로 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.');
       return;
     }
 
     if (polylineRef.current) polylineRef.current.setMap(null);
+    if (polylineKakaoRef.current) polylineKakaoRef.current.setMap(null);
     if (destinationMarkerRef.current) destinationMarkerRef.current.setMap(null);
     uTurnMarkersRef.current.forEach(marker => marker.setMap(null));
     uTurnMarkersRef.current = [];
 
+    // 1. 카카오 안전 경로 렌더링 (두껍고 옅은 파란색, 지도 바닥에 깔림)
+    if (kakaoResult && kakaoResult.path && kakaoResult.path.length > 0) {
+      const polylineKakao = new window.kakao.maps.Polyline({
+        path: kakaoResult.path,
+        strokeWeight: 8,
+        strokeColor: '#3366FF',
+        strokeOpacity: 0.8,
+        strokeStyle: 'solid',
+      });
+      polylineKakao.setZIndex(1); // zIndex 낮게 설정하여 바닥에 깔림
+      polylineKakao.setMap(mapRef.current);
+      polylineKakaoRef.current = polylineKakao;
+    }
+
+    // 2. BRouter 숏컷 경로 렌더링 (얇고 쨍한 빨간 점선, 파란 선 위로 포개짐)
     const polyline = new window.kakao.maps.Polyline({
-      path: routeResult.path,
-      strokeWeight: 6,
+      path: brouterResult.path,
+      strokeWeight: 4,
       strokeColor: '#FF3344',
-      strokeOpacity: 0.9,
-      strokeStyle: 'solid',
+      strokeOpacity: 1.0,
+      strokeStyle: 'shortdash',
     });
+    polyline.setZIndex(2); // zIndex 높게 설정하여 위에 덧그려짐
     polyline.setMap(mapRef.current);
     polylineRef.current = polyline;
 
     const endMarker = new window.kakao.maps.Marker({
-      position: routeResult.path[routeResult.path.length - 1],
+      position: brouterResult.path[brouterResult.path.length - 1],
       map: mapRef.current,
     });
     destinationMarkerRef.current = endMarker;
 
-    uTurnMarkersRef.current = detectAndMarkUTurns(routeResult.path, mapRef.current);
-    routePathRef.current = routeResult.path; 
+    uTurnMarkersRef.current = detectAndMarkUTurns(brouterResult.path, mapRef.current);
+    routePathRef.current = brouterResult.path; 
+    routePathKakaoRef.current = kakaoResult && kakaoResult.path ? kakaoResult.path : [];
     setRouteTrigger(p => p + 1);
 
     const bounds = new window.kakao.maps.LatLngBounds();
-    routeResult.path.forEach((p) => bounds.extend(p));
+    brouterResult.path.forEach((p) => bounds.extend(p));
+    // 카카오 경로도 바운드에 포함
+    if (kakaoResult && kakaoResult.path) {
+      kakaoResult.path.forEach((p) => bounds.extend(p));
+    }
     mapRef.current.setBounds(bounds);
 
-    const distanceKm = (routeResult.distance / 1000).toFixed(1);
-    const estimatedMinutes = Math.max(1, Math.round(routeResult.duration / 60));
+    const distanceKm = (brouterResult.distance / 1000).toFixed(1);
+    const estimatedMinutes = Math.max(1, Math.round(brouterResult.duration / 60));
     const now = new Date();
     now.setMinutes(now.getMinutes() + estimatedMinutes);
     const arrivalTimeStr = `${now.getHours()}:${now.getMinutes() < 10 ? '0' : ''}${now.getMinutes()}`;
 
-    setInstructions(routeResult.steps || []);
+    setInstructions(brouterResult.steps || []);
     setCurrentStepIndex(0);
     setIsNavigating(false);
     
@@ -507,6 +637,7 @@ function App() {
     }
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     if (polylineRef.current) polylineRef.current.setMap(null);
+    if (polylineKakaoRef.current) polylineKakaoRef.current.setMap(null);
     if (destinationMarkerRef.current) destinationMarkerRef.current.setMap(null);
     
     uTurnMarkersRef.current.forEach(marker => marker.setMap(null));
@@ -644,6 +775,12 @@ function App() {
     };
   }, []);
 
+  const handleManualReroute = () => {
+    if (!currentPosRef.current) return;
+    speakVoiceGuide("수동으로 경로를 재탐색합니다.");
+    handleAutoReroute(currentPosRef.current.lat, currentPosRef.current.lng, false);
+  };
+
   return (
     <div className="map-wrapper">
       <div ref={mapContainerRef} className="map-container" />
@@ -763,6 +900,7 @@ function App() {
                 <span className="mini-dist">{routeInfo.distance} km</span>
               </div>
               <div className="action-row">
+                <button type="button" className="reroute-btn" onClick={handleManualReroute} style={{ marginRight: '8px', backgroundColor: '#3366FF', color: 'white', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold' }}>🔄 수동 재탐색</button>
                 <button type="button" className="stop-nav-btn" onClick={handleStopNavigation}>주행 종료</button>
               </div>
             </div>
