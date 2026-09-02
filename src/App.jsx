@@ -1,5 +1,47 @@
 import { useEffect, useRef, useState } from 'react';
 import './App.css';
+// [추가] 두 좌표 사이의 방위각(Bearing) 계산 함수
+const getBearing = (lat1, lng1, lat2, lng2) => {
+  const toRad = Math.PI / 180;
+  const toDeg = 180 / Math.PI;
+  const dLng = (lng2 - lng1) * toRad;
+  const y = Math.sin(dLng) * Math.cos(lat2 * toRad);
+  const x = Math.cos(lat1 * toRad) * Math.sin(lat2 * toRad) -
+            Math.sin(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.cos(dLng);
+  const brng = Math.atan2(y, x) * toDeg;
+  return (brng + 360) % 360;
+};
+
+// [추가] BRouter 좌표 기반으로 회전(우회전/좌회전) 가이드 생성
+const generateBRouterGuides = (coords) => {
+  const guides = [];
+  let lastBearing = null;
+  // 너무 짧은 구간의 노이즈(곡선)를 무시하기 위해 3칸씩 건너뛰며 검사
+  for (let i = 0; i < coords.length - 2; i += 3) {
+    const p1 = coords[i];
+    const p2 = coords[Math.min(i + 3, coords.length - 1)];
+    const bearing = getBearing(p1[1], p1[0], p2[1], p2[0]);
+    if (lastBearing !== null) {
+      let diff = bearing - lastBearing;
+      if (diff > 180) diff -= 360;
+      if (diff < -180) diff += 360;
+      // 40도 이상 꺾일 때만 유효한 회전으로 인식 (노이즈 캔슬링)
+      if (Math.abs(diff) > 40 && Math.abs(diff) < 140) {
+        const turnStr = diff > 0 ? "우측 골목길 숏컷" : "좌측 골목길 숏컷";
+        guides.push({
+          text: `전방 50미터 앞, ${turnStr}으로 진입하세요.`,
+          lat: p2[1],
+          lng: p2[0],
+          alerted: false,
+          type: 'brouter'
+        });
+      }
+    }
+    lastBearing = bearing;
+  }
+  return guides;
+};
+
 
 // 경로와 특정 좌표 간 최단거리 (기존)
 function getDistanceToPath(lat, lng, path) {
@@ -47,6 +89,8 @@ function App() {
   const polylineRef = useRef(null);
   const polylineKakaoRef = useRef(null);
   const uTurnMarkersRef = useRef([]);
+  const brouterGuidesRef = useRef([]);
+  const kakaoGuidesRef = useRef([]);
 
   const watchIdRef = useRef(null);
   const wakeLockRef = useRef(null);
@@ -279,8 +323,10 @@ function App() {
       polylineRef.current = polyline;
 
       uTurnMarkersRef.current = detectAndMarkUTurns(brouterResult.path, mapRef.current);
-      routePathRef.current = brouterResult.path; 
+      routePathRef.current = brouterResult.path;
+        brouterGuidesRef.current = brouterResult.guides || []; 
       routePathKakaoRef.current = kakaoResult && kakaoResult.path ? kakaoResult.path : [];
+        kakaoGuidesRef.current = kakaoResult && kakaoResult.guides ? kakaoResult.guides : [];
       setRouteTrigger(p => p + 1);
 
       const distanceKm = (brouterResult.distance / 1000).toFixed(1);
@@ -316,7 +362,25 @@ function App() {
           const distKakao = routePathKakaoRef.current.length > 0 ? getDistanceToPath(lat, lng, routePathKakaoRef.current) : Infinity;
           
           // 빨간 선과 파란 선 중 나와의 거리
-          const minDistance = Math.min(distBRouter, distKakao);
+          
+            const minDistance = Math.min(distBRouter, distKakao);
+            
+            // [다이내믹 보이스 스위칭 로직]
+            const activeRoute = distBRouter <= distKakao ? 'brouter' : 'kakao';
+            const currentGuides = activeRoute === 'brouter' ? brouterGuidesRef.current : kakaoGuidesRef.current;
+            
+            if (currentGuides && currentGuides.length > 0) {
+              currentGuides.forEach(guide => {
+                if (!guide.alerted) {
+                  const d = getDistanceToPath(lat, lng, [new window.kakao.maps.LatLng(guide.lat, guide.lng)]);
+                  if (d < 50) { // 50m 전방에서 다가올 때
+                    guide.alerted = true; // 중복 송출 방지
+                    speakVoiceGuide(guide.text);
+                  }
+                }
+              });
+            }
+
           
           if (minDistance > 20) {
             // 1. 완전 이탈: 두 선 모두 20미터 밖으로 벗어남 -> 요란하게 하드 재탐색
@@ -455,10 +519,11 @@ function App() {
           const distance = parseInt(feature.properties['track-length'] || 0, 10);
           const duration = parseInt(feature.properties['total-time'] || 0, 10);
           const steps = [
-            { arrow: '🚀', text: '오토바이 전용 극한 숏컷 진입 (역주행/계단/자전거도로 원천 차단됨)', distance: distance, alertBadgeText: '골목길 우회 활성화' },
-            { arrow: '🏁', text: '목적지 부근에 도착합니다.', distance: 0 }
-          ];
-          return { path: linePath, distance, duration, steps };
+              { arrow: '🚀', text: '오토바이 전용 극한 숏컷 진입 (역주행/계단/자전거도로 원천 차단됨)', distance: distance, alertBadgeText: '골목길 우회 활성화' },
+              { arrow: '🏁', text: '목적지 부근에 도착했습니다.', distance: 0 }
+            ];
+            const guides = generateBRouterGuides(coords);
+            return { path: linePath, distance, duration, steps, guides };
         }
       }
     } catch (e) {
@@ -521,8 +586,23 @@ function App() {
             });
           });
           const distance = route.summary.distance || 0;
-          const duration = route.summary.duration || 0;
-          return { path, distance, duration };
+            const duration = route.summary.duration || 0;
+            
+            const kakaoGuides = [];
+            if (route.sections[0].guides) {
+              route.sections[0].guides.forEach(g => {
+                if (g.guidance) {
+                  kakaoGuides.push({
+                    text: `안전 경로 ${g.guidance}`, // 카카오 원본 데이터에 안전경로 접두사 추가
+                    lat: g.y,
+                    lng: g.x,
+                    alerted: false,
+                    type: 'kakao'
+                  });
+                }
+              });
+            }
+            return { path, distance, duration, guides: kakaoGuides };
         }
       }
     } catch (e) {
@@ -597,8 +677,10 @@ function App() {
     destinationMarkerRef.current = endMarker;
 
     uTurnMarkersRef.current = detectAndMarkUTurns(brouterResult.path, mapRef.current);
-    routePathRef.current = brouterResult.path; 
+    routePathRef.current = brouterResult.path;
+        brouterGuidesRef.current = brouterResult.guides || []; 
     routePathKakaoRef.current = kakaoResult && kakaoResult.path ? kakaoResult.path : [];
+        kakaoGuidesRef.current = kakaoResult && kakaoResult.guides ? kakaoResult.guides : [];
     setRouteTrigger(p => p + 1);
 
     const bounds = new window.kakao.maps.LatLngBounds();
