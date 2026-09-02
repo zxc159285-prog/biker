@@ -553,6 +553,13 @@ function App() {
     startRealtimeTracking();
     requestScreenWakeLock();
     if (instructions.length > 0) speakVoiceGuide(`안내를 시작합니다. 전방에 단속 카메라가 있을 경우 음성으로 경고해 드립니다.`);
+    
+    if (mapRef.current) {
+      mapRef.current.setLevel(2); // 주행 모드 돌입 시 지도 바짝 확대 (Level 2)
+      if (currentPosRef.current) {
+        mapRef.current.panTo(new window.kakao.maps.LatLng(currentPosRef.current.lat, currentPosRef.current.lng));
+      }
+    }
   };
 
   const handleStopNavigation = () => {
@@ -561,6 +568,10 @@ function App() {
     releaseScreenWakeLock();
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     announcedCamerasRef.current.clear();
+    
+    if (mapRef.current) {
+      mapRef.current.setLevel(4); // 주행 종료 시 주변 파악을 위해 살짝 축소 (Level 4)
+    }
   };
 
   const handleSelectStartPlace = (place) => {
