@@ -382,7 +382,9 @@ function App() {
             }
 
           
-          if (minDistance > 20) {
+          // [예외 처리] 목적지 반경 100m 이내(주차장 진입 등)에서는 오프로드로 간주하여 재탐색을 강제 중단
+          const distToDest = getPointDistance(lat, lng, selectedDestRef.current.lat, selectedDestRef.current.lng);
+          if (minDistance > 20 && distToDest > 100) {
             // 1. 완전 이탈: 두 선 모두 20미터 밖으로 벗어남 -> 요란하게 하드 재탐색
             handleAutoReroute(lat, lng, false);
           } else {
