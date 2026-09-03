@@ -314,13 +314,39 @@
 <span class="code-keyword">const</span> apiUrl = <span class="code-string">`https://brouter.de/brouter?lonlats=...&profile=custom_${customProfileHash}`</span>;</code></pre>
             </div>
         </div>
-        <div class="slide-footer"><span>HIRANG BIKER</span><span>06 / 06</span></div>
+        <div class="slide-footer"><span>HIRANG BIKER</span><span>06 / 07</span></div>
     </div>
     
+    
+    <!-- SLIDE 07: TROUBLESHOOTING 4 -->
+    <div class="slide theme-biker">
+        <div class="slide-tag"><div class="dots"><div class="dot"></div><div class="dot orange"></div></div> PROJECT 02 · TROUBLESHOOTING 04</div>
+        <div class="slide-title">
+            <span>[T/S 4] 오프로드 무한 루프 방어 & 중앙분리대 한계 극복</span>
+        </div>
+        <p class="slide-subtitle">API 폭주를 막는 목적지 가드(Guard) 로직과 듀얼 라우팅(보이스 스위칭)의 완벽한 시너지</p>
+        <div class="single-page-grid">
+            <div class="panel" style="grid-column: span 1;">
+                <div class="panel-title"><i class="fas fa-parking"></i>목적지 오프로드(주차장) 무한 탐색 방어</div>
+                <p><b>[현상]</b> 아파트 단지나 대형 주차장 등 목적지 부근 오프로드로 진입 시, 도로 위에 그려진 경로와 GPS 간의 거리가 20m 이상 벌어져 앱이 '경로 이탈'로 오판하고 <b>무한 재탐색(API 폭주) 루프</b>에 빠지는 치명적 엣지 케이스를 야외 주행 테스트 중 발견했습니다.</p>
+                <div class="panel-title" style="margin-top: 1rem;"><i class="fas fa-shield-alt"></i>100m Guard 가동</div>
+                <p><b>[해결]</b> 현재 위치와 '최종 목적지' 간의 거리를 1초마다 실시간 계산(distToDest)하여, <b>반경 100m 이내 진입 시 이를 '도착 임박/주차 탐색' 상태로 인지하고 재탐색(Reroute) 로직을 강제 차단</b>하는 방어 코드를 주입해 무한 루프를 완벽히 해결했습니다.</p>
+            </div>
+            
+            <div class="panel" style="grid-column: span 1; background: #f0f9ff; border: 1px solid #bae6fd;">
+                <div class="panel-title"><i class="fas fa-map-marked-alt"></i>오픈소스 맵(OSM)의 한국 지형 한계 극복</div>
+                <p><b>[현상]</b> 국가 안보 규제로 정밀 지도를 반출할 수 없는 지형 특성상, 해외 맵(빨간선)은 중앙분리대나 일방통행을 인지하지 못하고 <b>물리적으로 불가능한 직진 횡단이나 역주행을 안내하는 치명적 데이터 결함</b>이 있었습니다.</p>
+                <div class="panel-title" style="margin-top: 1rem;"><i class="fas fa-exchange-alt"></i>듀얼 라우팅 + 보이스 스위칭 시너지</div>
+                <p><b>[해결]</b> 이를 '듀얼 라우팅'으로 기획적 승화(극복)를 이루어 냈습니다. 라이더가 중앙분리대 오류를 눈으로 확인하고 카카오 파란선으로 우회하거나 횡단보도를 건너가면, <b>수학적 방위각 계산으로 구동되는 '다이내믹 보이스 스위칭' 엔진이 경로 변경을 즉시 눈치채고 카카오 안전 경로 음성 안내로 자동 교체</b>해 주도록 설계했습니다.</p>
+            </div>
+        </div>
+        <div class="slide-footer"><span>HIRANG BIKER</span><span>07 / 07</span></div>
+    </div>
+
     <!-- NAVIGATION CONTROLLER -->
     <div class="nav-bar">
         <button class="nav-btn" onclick="prevSlide()"><i class="fas fa-chevron-left"></i> PREV</button>
-        <span class="nav-counter"><span id="current-slide">1</span> / 6</span>
+        <span class="nav-counter"><span id="current-slide">1</span> / 7</span>
         <button class="nav-btn" onclick="nextSlide()">NEXT <i class="fas fa-chevron-right"></i></button>
     </div>
 
